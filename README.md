@@ -248,12 +248,13 @@ the new record will not be created.
 
 ## Behaviour
 
-The overall strategy of this middleware is to prevent deleting records from the database and instead soft delete them by
-setting a field on the record to a value that indicates the record is deleted. The middleware then handles excluding the
-soft deleted records from find queries, where conditions, includes, selects and bulk updates. Updates by id will still
-update the record even if it is soft deleted and will not change the soft delete field. The reason updates by id are
-allowed is because the middleware only supports querying soft deleted records explicitly, and so if you have the id of a
-soft deleted record you should be able to update it.
+The main behaviour of the middleware is to replace delete operations with update operations that set the soft delete
+field to the deleted value.
+
+The middleware also prevents accidentally fetching or updating soft deleted records by excluding soft deleted records
+from find queries, includes, selects and bulk updates. The middleware does allow explicit queries for soft deleted
+records and allows updates through unique fields such is it's id. The reason it allows updates through unique fields is
+because soft deleted records can only be fetched explicitly so updates through a unique fields should be intentional.
 
 ### Deleting Records
 
