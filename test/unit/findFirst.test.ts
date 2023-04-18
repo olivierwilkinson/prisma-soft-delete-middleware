@@ -46,6 +46,46 @@ describe("findFirst", () => {
     });
   });
 
+  it("excludes deleted records from findFirst with no args", async () => {
+    const middleware = createSoftDeleteMiddleware({ models: { User: true } });
+
+    const params = createParams("User", "findFirst", undefined);
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have been modified
+    expect(next).toHaveBeenCalledWith({
+      ...params,
+      action: "findFirst",
+      args: {
+        where: {
+          deleted: false,
+        },
+      },
+    });
+  });
+
+  it("excludes deleted records from findFirst with empty args", async () => {
+    const middleware = createSoftDeleteMiddleware({ models: { User: true } });
+
+    const params = createParams("User", "findFirst", {});
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have been modified
+    expect(next).toHaveBeenCalledWith({
+      ...params,
+      action: "findFirst",
+      args: {
+        where: {
+          deleted: false,
+        },
+      },
+    });
+  });
+
   it("allows explicitly querying for deleted records using findFirst", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },

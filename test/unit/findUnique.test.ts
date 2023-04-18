@@ -45,4 +45,34 @@ describe("findUnique", () => {
       },
     });
   });
+
+  it("does not modify findUnique to be a findFirst when no args passed", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    // @ts-expect-error testing if user doesn't pass args accidentally
+    const params = createParams("User", "findUnique", undefined);
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  });
+
+  it("does not modify findUnique to be a findFirst when no where passed", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    // @ts-expect-error testing if user doesn't pass where accidentally
+    const params = createParams("User", "findUnique", {});
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  });
 });

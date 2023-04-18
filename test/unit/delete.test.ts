@@ -43,6 +43,32 @@ describe("delete", () => {
     expect(await middleware(params, next)).toEqual({ id: 1, deleted: true });
   });
 
+  it("does not modify delete with no args", async () => {
+    const middleware = createSoftDeleteMiddleware({ models: { User: true } });
+
+    // @ts-expect-error - args are required
+    const params = createParams("User", "delete", undefined);
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  });
+
+  it("does not modify delete with no where", async () => {
+    const middleware = createSoftDeleteMiddleware({ models: { User: true } });
+
+    // @ts-expect-error - where is required
+    const params = createParams("User", "delete", {});
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  });
+
   it("changes delete action into an update to add deleted mark", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },
