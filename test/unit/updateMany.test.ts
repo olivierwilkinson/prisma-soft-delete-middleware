@@ -30,6 +30,19 @@ describe("updateMany", () => {
     expect(await middleware(params, next)).toEqual({ count: 1 });
   });
 
+  it("does not change updateMany action if args not passed", async () => {
+    const middleware = createSoftDeleteMiddleware({ models: { User: true } });
+
+    // @ts-expect-error - args are required
+    const params = createParams("User", "updateMany", undefined);
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  });
+
   it("excludes deleted records from root updateMany action", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },
@@ -38,6 +51,31 @@ describe("updateMany", () => {
     const params = createParams("User", "updateMany", {
       where: { id: 1 },
       data: { email: "test@test.com" },
+    });
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have been modified
+    expect(next).toHaveBeenCalledWith({
+      ...params,
+      args: {
+        ...params.args,
+        where: {
+          ...params.args.where,
+          deleted: false,
+        },
+      },
+    });
+  });
+
+  it("excludes deleted records from root updateMany action when where not passed", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    const params = createParams("User", "updateMany", {
+      data: { name: "John" },
     });
     const next = jest.fn(() => Promise.resolve({}));
 

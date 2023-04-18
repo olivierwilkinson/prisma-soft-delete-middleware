@@ -19,7 +19,9 @@ function createDeleteParams(
   if (
     !params.model ||
     // do nothing for delete: false
-    (typeof params.args === "boolean" && !params.args)
+    (typeof params.args === "boolean" && !params.args) ||
+    // do nothing for root delete without where to allow Prisma to throw
+    (!params.scope && !params.args?.where)
   ) {
     return params;
   }
@@ -39,7 +41,7 @@ function createDeleteParams(
     ...params,
     action: "update",
     args: {
-      where: params.args.where || params.args,
+      where: params.args?.where || params.args,
       data: {
         [field]: createValue(true),
       },
@@ -61,7 +63,7 @@ function createDeleteManyParams(
 ): NestedParams {
   if (!params.model) return params;
 
-  const where = params.args.where || params.args;
+  const where = params.args?.where || params.args;
 
   return {
     ...params,
@@ -96,7 +98,7 @@ function createUpdateParams(
     params.scope?.relations &&
     !params.scope.relations.to.isList &&
     !config.allowToOneUpdates &&
-    !params.args.__passUpdateThrough
+    !params.args?.__passUpdateThrough
   ) {
     throw new Error(
       `prisma-soft-delete-middleware: update of model "${params.model}" through "${params.scope?.parentParams.model}.${params.scope.relations.to.name}" found. Updates of soft deleted models through a toOne relation is not supported as it is possible to update a soft deleted record.`
@@ -104,7 +106,7 @@ function createUpdateParams(
   }
 
   // remove __passUpdateThrough from args
-  if (params.args.__passUpdateThrough) {
+  if (params.args?.__passUpdateThrough) {
     delete params.args.__passUpdateThrough;
   }
 
@@ -123,15 +125,18 @@ function createUpdateManyParams(
   params: NestedParams,
   config: ModelConfig
 ): NestedParams {
+  // do nothing if args are not defined to allow Prisma to throw an error
+  if (!params.args) return params;
+
   return {
     ...params,
     args: {
       ...params.args,
       where: {
-        ...params.args.where,
+        ...params.args?.where,
         // allow overriding the deleted field in where
         [config.field]:
-          params.args.where[config.field] || config.createValue(false),
+          params.args?.where?.[config.field] || config.createValue(false),
       },
     },
   };
@@ -165,13 +170,16 @@ function createFindUniqueParams(
   params: NestedParams,
   config: ModelConfig
 ): NestedParams {
+  // pass through if args are not defined to allow Prisma to throw an error
+  if (!params.args?.where) return params;
+
   return {
     ...params,
     action: "findFirst",
     args: {
       ...params.args,
       where: {
-        ...params.args.where,
+        ...params.args?.where,
         [config.field]: config.createValue(false),
       },
     },
@@ -198,10 +206,10 @@ function createFindFirstParams(
     args: {
       ...params.args,
       where: {
-        ...params.args.where,
+        ...params.args?.where,
         // allow overriding the deleted field in where
         [config.field]:
-          params.args.where[config.field] || config.createValue(false),
+          params.args?.where?.[config.field] || config.createValue(false),
       },
     },
   };
@@ -227,10 +235,10 @@ function createFindManyParams(
     args: {
       ...params.args,
       where: {
-        ...params.args.where,
+        ...params.args?.where,
         // allow overriding the deleted field in where
         [config.field]:
-          params.args.where[config.field] || config.createValue(false),
+          params.args?.where?.[config.field] || config.createValue(false),
       },
     },
   };
@@ -343,7 +351,7 @@ function createIncludeParams(
   // includes of toOne relation cannot filter deleted records using params
   // instead ensure that the deleted field is selected and filter the results
   if (params.scope?.relations?.to.isList === false) {
-    if (params.args.select && !params.args.select[config.field]) {
+    if (params.args?.select && !params.args?.select[config.field]) {
       return addDeletedToSelect(params, config);
     }
 
@@ -355,10 +363,10 @@ function createIncludeParams(
     args: {
       ...params.args,
       where: {
-        ...params.args.where,
+        ...params.args?.where,
         // allow overriding the deleted field in where
         [config.field]:
-          params.args.where?.[config.field] || config.createValue(false),
+          params.args?.where?.[config.field] || config.createValue(false),
       },
     },
   };
@@ -405,7 +413,7 @@ function createSelectParams(
 
   // selects of toOne relation cannot filter deleted records using params
   if (params.scope?.relations?.to.isList === false) {
-    if (params.args.select && !params.args.select[config.field]) {
+    if (params.args?.select && !params.args.select[config.field]) {
       return addDeletedToSelect(params, config);
     }
 
@@ -417,10 +425,10 @@ function createSelectParams(
     args: {
       ...params.args,
       where: {
-        ...params.args.where,
+        ...params.args?.where,
         // allow overriding the deleted field in where
         [config.field]:
-          params.args.where?.[config.field] || config.createValue(false),
+          params.args?.where?.[config.field] || config.createValue(false),
       },
     },
   };

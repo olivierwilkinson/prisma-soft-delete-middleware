@@ -46,6 +46,50 @@ describe("findMany", () => {
     });
   });
 
+  it("excludes deleted records from findMany with no args", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    const params = createParams("User", "findMany", undefined);
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have been modified
+    expect(next).toHaveBeenCalledWith({
+      ...params,
+      action: "findMany",
+      args: {
+        where: {
+          deleted: false,
+        },
+      },
+    });
+  });
+
+  it("excludes deleted records from findMany with empty args", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    const params = createParams("User", "findMany", {});
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have been modified
+    expect(next).toHaveBeenCalledWith({
+      ...params,
+      action: "findMany",
+      args: {
+        where: {
+          deleted: false,
+        },
+      },
+    });
+  });
+
   it("allows explicitly querying for deleted records using findMany", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },

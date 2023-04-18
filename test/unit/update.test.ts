@@ -56,7 +56,7 @@ describe("update", () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },
       defaultConfig: {
-        field: 'deleted',
+        field: "deleted",
         createValue: Boolean,
         allowToOneUpdates: true,
       },
@@ -100,6 +100,32 @@ describe("update", () => {
         },
       },
     });
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  });
+
+  it("does not modify update when no args are passed", async () => {
+    const middleware = createSoftDeleteMiddleware({ models: { User: true } });
+
+    // @ts-expect-error - args are required
+    const params = createParams("User", "update", undefined);
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  });
+
+  it("does not modify update when no where is passed", async () => {
+    const middleware = createSoftDeleteMiddleware({ models: { User: true } });
+
+    // @ts-expect-error - where is required
+    const params = createParams("User", "update", {});
     const next = jest.fn(() => Promise.resolve({}));
 
     await middleware(params, next);

@@ -64,6 +64,46 @@ describe("deleteMany", () => {
     });
   });
 
+  it("changes deleteMany action with no args into an updateMany that adds deleted mark", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    const next = jest.fn(() => Promise.resolve({}));
+    const params = createParams("User", "deleteMany", undefined);
+    await middleware(params, next);
+
+    // params are modified correctly
+    expect(next).toHaveBeenCalledWith({
+      ...params,
+      action: "updateMany",
+      args: {
+        where: { deleted: false },
+        data: { deleted: true },
+      },
+    });
+  });
+
+  it("changes deleteMany action with no where into an updateMany that adds deleted mark", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    const next = jest.fn(() => Promise.resolve({}));
+    const params = createParams("User", "deleteMany", {});
+    await middleware(params, next);
+
+    // params are modified correctly
+    expect(next).toHaveBeenCalledWith({
+      ...params,
+      action: "updateMany",
+      args: {
+        where: { deleted: false },
+        data: { deleted: true },
+      },
+    });
+  });
+
   it("changes nested deleteMany action into an updateMany that adds deleted mark", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { Post: true },
