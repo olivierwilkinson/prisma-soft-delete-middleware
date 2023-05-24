@@ -1,6 +1,6 @@
 import { NestedParams, NestedMiddleware } from "prisma-nested-middleware";
 
-import { ModelConfig } from "./types";
+import { ModelConfig, NestedCustomParams } from "./types";
 import {
   addDeletedToSelect,
   stripDeletedFieldFromResults,
@@ -252,7 +252,38 @@ export function createFindManyMiddleware(
   };
 }
 
-/* Count middlware */
+
+/*GroupBy middleware */
+function createGroupByParams(
+  params: NestedParams,
+  config: ModelConfig
+): NestedCustomParams {
+  return {
+    ...params,
+    action: "groupBy",
+    args: {
+      ...params.args,
+      where: {
+        ...params.args?.where,
+        // allow overriding the deleted field in where
+        [config.field]:
+          params.args?.where?.[config.field] || config.createValue(false),
+      },
+    },
+  };
+}
+
+export function createGroupByMiddleware(
+  config: ModelConfig
+): NestedMiddleware {
+  return function groupByMiddleware(params, next) {
+    return next(createGroupByParams(params, config));
+  };
+}
+
+
+
+/* Count middleware */
 
 function createCountParams(
   params: NestedParams,
