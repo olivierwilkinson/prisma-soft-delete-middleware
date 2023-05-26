@@ -53,6 +53,8 @@ type ArgsByAction<
   ? Parameters<DelegateByModel<Model>["updateMany"]>[0]
   : Action extends "findUnique"
   ? Parameters<DelegateByModel<Model>["findUnique"]>[0]
+  : Action extends "groupBy"
+  ? Parameters<DelegateByModel<Model>["groupBy"]>[0]
   : Action extends "findFirst"
   ? Parameters<DelegateByModel<Model>["findFirst"]>[0]
   : Action extends "findMany"

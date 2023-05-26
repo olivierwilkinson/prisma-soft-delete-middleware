@@ -17,6 +17,7 @@ import {
   createUpdateMiddleware,
   createUpsertMiddleware,
   createWhereMiddleware,
+  createGroupByMiddleware,
 } from "./actionMiddleware";
 
 import { Config, ModelConfig } from "./types";
@@ -71,6 +72,7 @@ export function createSoftDeleteMiddleware({
         where: createWhereMiddleware(config),
         include: createIncludeMiddleware(config),
         select: createSelectMiddleware(config),
+        groupBy: createGroupByMiddleware(config),
       },
     };
   }, {});
