@@ -1,6 +1,6 @@
 import { NestedParams, NestedMiddleware } from "prisma-nested-middleware";
 
-import { ModelConfig, NestedCustomParams } from "./types";
+import { ModelConfig } from "./types";
 import {
   addDeletedToSelect,
   stripDeletedFieldFromResults,
@@ -257,7 +257,7 @@ export function createFindManyMiddleware(
 function createGroupByParams(
   params: NestedParams,
   config: ModelConfig
-): NestedCustomParams {
+): NestedParams {
   return {
     ...params,
     action: "groupBy",
