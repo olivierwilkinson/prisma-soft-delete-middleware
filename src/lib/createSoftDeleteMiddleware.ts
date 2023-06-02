@@ -4,14 +4,17 @@ import {
   NestedMiddleware,
 } from "prisma-nested-middleware";
 import {
-  noopMiddleware,
   createAggregateMiddleware,
   createCountMiddleware,
+  createDeleteManyMiddleware,
+  createDeleteMiddleware,
   createFindFirstMiddleware,
   createFindManyMiddleware,
   createFindUniqueMiddleware,
   createIncludeMiddleware,
   createSelectMiddleware,
+  createUpdateManyMiddleware,
+  createUpdateMiddleware,
   createUpsertMiddleware,
   createWhereMiddleware,
   createGroupByMiddleware,
@@ -56,11 +59,10 @@ export function createSoftDeleteMiddleware({
     return {
       ...acc,
       [model]: {
-        delete: noopMiddleware(config),
-        deleteMany: noopMiddleware(config),
-        update: noopMiddleware(config),
-        updateMany: noopMiddleware(config),
-
+        delete: createDeleteMiddleware(config),
+        deleteMany: createDeleteManyMiddleware(config),
+        update: createUpdateMiddleware(config),
+        updateMany: createUpdateManyMiddleware(config),
         upsert: createUpsertMiddleware(config),
         findFirst: createFindFirstMiddleware(config),
         findUnique: createFindUniqueMiddleware(config),
