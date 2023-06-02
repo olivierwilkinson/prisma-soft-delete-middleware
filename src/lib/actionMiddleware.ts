@@ -10,6 +10,21 @@ import {
   shouldFilterDeletedFromReadResult,
 } from "./utils/resultFiltering";
 
+/* No-op middleware */
+
+function noopParams(
+  params: NestedParams,
+  _config: ModelConfig
+): NestedParams | NestedParams[] {
+  return params;
+}
+
+export function noopMiddleware(config: ModelConfig): NestedMiddleware {
+  return function noop(params, next) {
+    return next(noopParams(params, config));
+  };
+}
+
 /* Delete middleware */
 
 function createDeleteParams(
