@@ -23,6 +23,7 @@
     "max-lines-per-function": "off",
     "consistent-return": "off",
     "jest/no-if": "off",
-    "one-var": "off"
+    "one-var": "off",
+    "babel/camelcase": "off"
   }
 }

@@ -342,6 +342,78 @@ describe("queries", () => {
       });
       expect(notFoundUser).toBeNull();
     });
+
+    it("throws a useful error when invalid where is passed", async () => {
+      // throws useful error when no where is passed
+      await expect(() =>
+        // @ts-expect-error intentionally incorrect args
+        testClient.user.findUnique()
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUnique()` invocation"
+      );
+
+      // throws useful error when empty where is passed
+      await expect(() =>
+        // @ts-expect-error intentionally incorrect args
+        testClient.user.findUnique({})
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUnique()` invocation"
+      );
+
+      // throws useful error when where is passed undefined unique fields
+      await expect(() =>
+        testClient.user.findUnique({
+          where: { id: undefined },
+        })
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUnique()` invocation"
+      );
+
+      // throws useful error when where has defined non-unique fields
+      await expect(() =>
+        testClient.user.findUnique({
+          // @ts-expect-error intentionally incorrect args
+          where: { name: firstUser.name },
+        })
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUnique()` invocation"
+      );
+
+      // throws useful error when where has undefined compound unique index field
+      await expect(() =>
+        testClient.user.findUnique({
+          where: { name_email: undefined },
+        })
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUnique()` invocation"
+      );
+
+      // throws useful error when where has undefined unique field and defined non-unique field
+      await expect(() =>
+        testClient.user.findUnique({
+          // @ts-expect-error intentionally incorrect args
+          where: { id: undefined, name: firstUser.name },
+        })
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUnique()` invocation"
+      );
+    });
+
+    // TODO:- enable this test when extendedWhereUnique is supported
+    it.failing(
+      "findUnique excludes soft-deleted records when using compound unique index fields",
+      async () => {
+        const notFoundUser = await testClient.user.findUnique({
+          where: {
+            name_email: {
+              name: deletedUser.name,
+              email: deletedUser.email,
+            },
+          },
+        });
+        expect(notFoundUser).toBeNull();
+      }
+    );
   });
 
   describe("findMany", () => {

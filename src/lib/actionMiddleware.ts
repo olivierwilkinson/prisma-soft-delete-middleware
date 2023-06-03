@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NestedParams, NestedMiddleware } from "prisma-nested-middleware";
 
 import { ModelConfig } from "./types";
@@ -168,10 +169,25 @@ export function createUpsertMiddleware(_: ModelConfig): NestedMiddleware {
 
 function createFindUniqueParams(
   params: NestedParams,
-  config: ModelConfig
+  config: ModelConfig,
+  uniqueFields: string[],
+  uniqueIndexFields: string[]
 ): NestedParams {
-  // pass through if args are not defined to allow Prisma to throw an error
-  if (!params.args?.where) return params;
+  // pass through invalid args so Prisma throws an error
+  // findUnique must have a where object
+  // where object must have at least one defined unique field
+  if (
+    !params.args?.where ||
+    typeof params.args.where !== "object" ||
+    !Object.entries(params.args.where).some(
+      ([key, val]) =>
+        (uniqueFields.includes(key) || uniqueIndexFields.includes(key)) &&
+        typeof val !== "undefined"
+    )
+  ) {
+    return params;
+  }
+
 
   return {
     ...params,
@@ -189,8 +205,36 @@ function createFindUniqueParams(
 export function createFindUniqueMiddleware(
   config: ModelConfig
 ): NestedMiddleware {
+  const uniqueFieldsByModel: Record<string, string[]> = {};
+  const uniqueIndexFieldsByModel: Record<string, string[]> = {};
+
+  Prisma.dmmf.datamodel.models.forEach((model) => {
+    // add unique fields derived from indexes
+    const uniqueIndexFields: string[] = [];
+    model.uniqueFields.forEach((field) => {
+      uniqueIndexFields.push(field.join("_"));
+    });
+    uniqueIndexFieldsByModel[model.name] = uniqueIndexFields;
+
+    // add id field and unique fields from @unique decorator
+    const uniqueFields: string[] = [];
+    model.fields.forEach((field) => {
+      if (field.isId || field.isUnique) {
+        uniqueFields.push(field.name);
+      }
+    });
+    uniqueFieldsByModel[model.name] = uniqueFields;
+  });
+
   return function findUniqueMiddleware(params, next) {
-    return next(createFindUniqueParams(params, config));
+    return next(
+      createFindUniqueParams(
+        params,
+        config,
+        uniqueFieldsByModel[params.model || ""] || [],
+        uniqueIndexFieldsByModel[params.model || ""] || []
+      )
+    );
   };
 }
 
