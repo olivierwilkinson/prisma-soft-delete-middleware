@@ -61,18 +61,61 @@ describe("findUnique", () => {
     expect(next).toHaveBeenCalledWith(params);
   });
 
-  it("does not modify findUnique to be a findFirst when no where passed", async () => {
+  it("does not modify findUnique to be a findFirst when invalid where passed", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },
     });
 
     // @ts-expect-error testing if user doesn't pass where accidentally
-    const params = createParams("User", "findUnique", {});
-    const next = jest.fn(() => Promise.resolve({}));
-
+    let params = createParams("User", "findUnique", {});
+    let next = jest.fn(() => Promise.resolve({}));
     await middleware(params, next);
+    expect(next).toHaveBeenCalledWith(params);
 
-    // params have not been modified
+    // expect empty where not to modify params
+    params = createParams("User", "findUnique", { where: {} });
+    next = jest.fn(() => Promise.resolve({}));
+    await middleware(params, next);
+    expect(next).toHaveBeenCalledWith(params);
+
+    // expect where with undefined id field not to modify params
+    params = createParams("User", "findUnique", { where: { id: undefined } });
+    next = jest.fn(() => Promise.resolve({}));
+    await middleware(params, next);
+    expect(next).toHaveBeenCalledWith(params);
+
+    // expect where with undefined unique field not to modify params
+    params = createParams("User", "findUnique", {
+      where: { email: undefined },
+    });
+    next = jest.fn(() => Promise.resolve({}));
+    await middleware(params, next);
+    expect(next).toHaveBeenCalledWith(params);
+
+    // expect where with undefined unique index field not to modify params
+    params = createParams("User", "findUnique", {
+      where: { name_email: undefined },
+    });
+    next = jest.fn(() => Promise.resolve({}));
+    await middleware(params, next);
+    expect(next).toHaveBeenCalledWith(params);
+
+    // expect where with defined non-unique field
+    params = createParams("User", "findUnique", {
+      // @ts-expect-error intentionally incorrect where
+      where: { name: "test" },
+    });
+    next = jest.fn(() => Promise.resolve({}));
+    await middleware(params, next);
+    expect(next).toHaveBeenCalledWith(params);
+
+    // expect where with defined non-unique field and undefined id field not to modify params
+    params = createParams("User", "findUnique", {
+      // @ts-expect-error intentionally incorrect where
+      where: { id: undefined, name: "test" },
+    });
+    next = jest.fn(() => Promise.resolve({}));
+    await middleware(params, next);
     expect(next).toHaveBeenCalledWith(params);
   });
 });
