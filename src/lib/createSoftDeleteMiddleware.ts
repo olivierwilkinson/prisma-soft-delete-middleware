@@ -28,6 +28,7 @@ export function createSoftDeleteMiddleware({
     field: "deleted",
     createValue: Boolean,
     allowToOneUpdates: false,
+    allowCompoundUniqueIndexWhere: false,
   },
 }: Config) {
   if (!defaultConfig.field) {

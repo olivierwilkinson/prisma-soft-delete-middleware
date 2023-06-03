@@ -93,7 +93,7 @@ export function createDeleteManyMiddleware(
 
 function createUpdateParams(
   params: NestedParams,
-  config: ModelConfig,
+  config: ModelConfig
 ): NestedParams {
   if (
     params.scope?.relations &&
@@ -188,6 +188,22 @@ function createFindUniqueParams(
     return params;
   }
 
+  const uniqueIndexField = Object.keys(params.args.where).find((key) =>
+    uniqueIndexFields.includes(key)
+  );
+
+  // when unique index field is found it is not possible to use findFirst.
+  // Instead warn the user that soft-deleted models will not be excluded from
+  // this query unless warnForUniqueIndexes is false.
+  if (uniqueIndexField) {
+    if (!config.allowCompoundUniqueIndexWhere) {
+      throw new Error(
+        `prisma-soft-delete-middleware: query of model "${params.model}" through compound unique index field "${uniqueIndexField}" found. Queries of soft deleted models through a unique index are not supported. Set "allowCompoundUniqueIndexWhere" to true to override this behaviour.`
+      );
+    }
+
+    return params;
+  }
 
   return {
     ...params,

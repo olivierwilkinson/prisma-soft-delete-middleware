@@ -46,6 +46,54 @@ describe("findUnique", () => {
     });
   });
 
+  it("throws when trying to pass a findUnique where with a compound unique index field", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    const params = createParams("User", "findUnique", {
+      where: {
+        name_email: {
+          name: "test",
+          email: "test@test.com",
+        },
+      },
+    });
+
+    const next = () => Promise.resolve({});
+
+    await expect(middleware(params, next)).rejects.toThrowError(
+      `prisma-soft-delete-middleware: query of model "User" through compound unique index field "name_email" found. Queries of soft deleted models through a unique index are not supported. Set "allowCompoundUniqueIndexWhere" to true to override this behaviour.`
+    );
+  });
+
+  it('does not modify findUnique when compound unique index field used and "allowCompoundUniqueIndexWhere" is set to true', async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: {
+        User: {
+          field: "deleted",
+          createValue: Boolean,
+          allowCompoundUniqueIndexWhere: true,
+        },
+      },
+    });
+
+    const params = createParams("User", "findUnique", {
+      where: {
+        name_email: {
+          name: "test",
+          email: "test@test.com",
+        },
+      },
+    });
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  });
+
   it("does not modify findUnique to be a findFirst when no args passed", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },
