@@ -201,6 +201,48 @@ client.$use(
 For more information for why updating through toOne relationship is disabled by default see the
 [Updating Records](#updating-records) section.
 
+Similarly to `allowToOneUpdates` there is an `allowCompoundUniqueIndexWhere` option that can be used to allow using
+where objects with compound unique index fields when using `findUnique` queries. By default this is set to `false` and
+will throw an error if you try to use a where with compound unique index fields. If you want to allow this you can set
+`allowCompoundUniqueIndexWhere` to `true`:
+
+```typescript
+client.$use(
+  createSoftDeleteMiddleware({
+    models: {
+      Comment: {
+        field: "deleted",
+        createValue: Boolean,
+        allowCompoundUniqueIndexWhere: true,
+      },
+    },
+  })
+);
+```
+
+For more information for why updating through toOne relationship is disabled by default see the
+[Excluding Soft Deleted Records in a `findUnique` Operation](#excluding-soft-deleted-records-in-a-findunique-operation) section.
+
+
+To allow to one updates or compound unique index fields globally you can use the `defaultConfig` to do so:
+
+```typescript
+client.$use(
+  createSoftDeleteMiddleware({
+    models: {
+      User: true,
+      Comment: true,
+    },
+    defaultConfig: {
+      field: "deleted",
+      createValue: Boolean,
+      allowToOneUpdates: true,
+      allowCompoundUniqueIndexWhere: true,
+    },
+  })
+);
+```
+
 ### Prisma Schema Setup
 
 The Prisma schema must be updated to include the soft delete field for each model you want to use soft delete with.
@@ -453,6 +495,26 @@ await client.comment.findFirst({
   },
 });
 ```
+
+When querying using a compound unique index in the where object the middleware will throw an error by default. This
+is because it is not possible to use these types of where object with `findFirst` and it is not possible to exclude
+soft-deleted records when using `findUnique`. For example take the following query:
+
+```typescript
+await client.user.findUnique({
+  where: {
+    name_email: {
+      name: "foo",
+      email: "bar",
+    },
+  },
+});
+```
+
+Since the compound unique index `@@unique([name, email])` is being queried through the `name_email` field of the where
+object the middleware will throw to avoid accidentally returning a soft deleted record.
+
+It is possible to override this behaviour by setting `allowCompoundUniqueIndexWhere` to `true` in the model config.
 
 ### Updating Records
 
