@@ -34,3 +34,29 @@ export function stripDeletedFieldFromResults(
 
   return results;
 }
+
+export function isDeletedFieldOverWritten(field: string, where?: any): boolean {
+  if (!where) {
+    return false
+  }
+  if (where[field] !== undefined) {
+    return true
+  }
+  if (where.OR && Array.isArray(where.OR)) {
+    const isDeletedFieldOverWrittenInOR = where.OR.some((arg: any) => {
+      return isDeletedFieldOverWritten(field, arg)
+    })
+    if (isDeletedFieldOverWrittenInOR) {
+      return true
+    }
+  }
+  if (where.AND && Array.isArray(where.AND)) {
+    const isDeletedFieldOverWrittenInAND = where.AND.some((arg: any) => {
+      return isDeletedFieldOverWritten(field, arg)
+    })
+    if (isDeletedFieldOverWrittenInAND) {
+      return true
+    }
+  }
+  return false
+}
