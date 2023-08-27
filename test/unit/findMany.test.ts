@@ -105,4 +105,68 @@ describe("findMany", () => {
     // params have not been modified
     expect(next).toHaveBeenCalledWith(params);
   });
+
+  it("allows explicitly querying for deleted records using OR modifier", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    const params = createParams("User", "findMany", {
+      where: { id: 1, OR: [{ deleted: true }, { name: 'name' }] },
+    });
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  })
+
+  it("allows explicitly querying for deleted records using nested OR modifier", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    const params = createParams("User", "findMany", {
+      where: { id: 1, OR: [{ name: 'name' }, { OR: [{ deleted: { not: false } }] }] },
+    });
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  })
+
+  it("allows explicitly querying for deleted records using AND modifier", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    const params = createParams("User", "findMany", {
+      where: { id: 1, AND: [{ deleted: true }, { name: 'name' }] },
+    });
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  })
+
+  it("allows explicitly querying for deleted records using nested AND modifier", async () => {
+    const middleware = createSoftDeleteMiddleware({
+      models: { User: true },
+    });
+
+    const params = createParams("User", "findMany", {
+      where: { id: 1, AND: [{ name: 'name' }, { OR: [{ deleted: { not: false } }] }] },
+    });
+    const next = jest.fn(() => Promise.resolve({}));
+
+    await middleware(params, next);
+
+    // params have not been modified
+    expect(next).toHaveBeenCalledWith(params);
+  })
 });

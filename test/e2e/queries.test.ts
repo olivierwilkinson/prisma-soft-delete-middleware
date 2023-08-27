@@ -426,6 +426,15 @@ describe("queries", () => {
         [firstUser.id, secondUser.id].sort()
       );
     });
+    it("findMany keeps soft deleted records when field is overwritten", async () => {
+      const foundUsers = await testClient.user.findMany({
+        where: { name: { contains: "J" }, OR: [{ deleted: false }, { deleted: true }] },
+      });
+      expect(foundUsers).toHaveLength(3);
+      expect(foundUsers.map(({ id }) => id).sort()).toEqual(
+        [firstUser.id, secondUser.id, deletedUser.id].sort()
+      );
+    })
   });
 
   describe("count", () => {

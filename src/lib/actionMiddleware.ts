@@ -4,6 +4,7 @@ import { NestedParams, NestedMiddleware } from "prisma-nested-middleware";
 import { ModelConfig } from "./types";
 import {
   addDeletedToSelect,
+  isDeletedFieldOverWritten,
   stripDeletedFieldFromResults,
 } from "./utils/nestedReads";
 import {
@@ -136,8 +137,7 @@ function createUpdateManyParams(
       where: {
         ...params.args?.where,
         // allow overriding the deleted field in where
-        [config.field]:
-          params.args?.where?.[config.field] || config.createValue(false),
+        ...(isDeletedFieldOverWritten(config.field, params.args?.where) ? {} : { [config.field]: config.createValue(false) })
       },
     },
   };
@@ -268,8 +268,7 @@ function createFindFirstParams(
       where: {
         ...params.args?.where,
         // allow overriding the deleted field in where
-        [config.field]:
-          params.args?.where?.[config.field] || config.createValue(false),
+        ...(isDeletedFieldOverWritten(config.field, params.args?.where) ? {} : { [config.field]: config.createValue(false) })
       },
     },
   };
@@ -282,6 +281,7 @@ export function createFindFirstMiddleware(
     return next(createFindFirstParams(params, config));
   };
 }
+
 
 /* FindMany middleware */
 
@@ -297,8 +297,7 @@ function createFindManyParams(
       where: {
         ...params.args?.where,
         // allow overriding the deleted field in where
-        [config.field]:
-          params.args?.where?.[config.field] || config.createValue(false),
+        ...(isDeletedFieldOverWritten(config.field, params.args?.where) ? {} : { [config.field]: config.createValue(false) })
       },
     },
   };
@@ -326,8 +325,7 @@ function createGroupByParams(
       where: {
         ...params.args?.where,
         // allow overriding the deleted field in where
-        [config.field]:
-          params.args?.where?.[config.field] || config.createValue(false),
+        ...(isDeletedFieldOverWritten(config.field, params.args?.where) ? {} : { [config.field]: config.createValue(false) })
       },
     },
   };
@@ -359,7 +357,7 @@ function createCountParams(
       where: {
         ...where,
         // allow overriding the deleted field in where
-        [config.field]: where[config.field] || config.createValue(false),
+        ...(isDeletedFieldOverWritten(config.field, params.args?.where) ? {} : { [config.field]: config.createValue(false) })
       },
     },
   };
@@ -387,7 +385,7 @@ function createAggregateParams(
       where: {
         ...where,
         // allow overriding the deleted field in where
-        [config.field]: where[config.field] || config.createValue(false),
+        ...(isDeletedFieldOverWritten(config.field, where) ? {} : { [config.field]: config.createValue(false) })
       },
     },
   };
@@ -456,8 +454,7 @@ function createIncludeParams(
       where: {
         ...params.args?.where,
         // allow overriding the deleted field in where
-        [config.field]:
-          params.args?.where?.[config.field] || config.createValue(false),
+        ...(isDeletedFieldOverWritten(config.field, params.args?.where) ? {} : { [config.field]: config.createValue(false) })
       },
     },
   };
@@ -518,8 +515,7 @@ function createSelectParams(
       where: {
         ...params.args?.where,
         // allow overriding the deleted field in where
-        [config.field]:
-          params.args?.where?.[config.field] || config.createValue(false),
+        ...(isDeletedFieldOverWritten(config.field, params.args?.where) ? {} : { [config.field]: config.createValue(false) })
       },
     },
   };
