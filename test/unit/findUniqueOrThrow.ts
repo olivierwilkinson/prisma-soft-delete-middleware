@@ -1,11 +1,11 @@
 import { createSoftDeleteMiddleware } from "../../src";
 import { createParams } from "./utils/createParams";
 
-describe("findUnique", () => {
-  it("does not change findUnique params if model is not in the list", async () => {
+describe("findUniqueOrThrow", () => {
+  it("does not change findUniqueOrThrow params if model is not in the list", async () => {
     const middleware = createSoftDeleteMiddleware({ models: {} });
 
-    const params = createParams("User", "findUnique", { where: { id: 1 } });
+    const params = createParams("User", "findUniqueOrThrow", { where: { id: 1 } });
     const next = jest.fn(() => Promise.resolve({}));
 
     await middleware(params, next);
@@ -14,21 +14,21 @@ describe("findUnique", () => {
     expect(next).toHaveBeenCalledWith(params);
   });
 
-  it("does not modify findUnique results", async () => {
+  it("does not modify findUniqueOrThrow results", async () => {
     const middleware = createSoftDeleteMiddleware({ models: { User: true } });
 
-    const params = createParams("User", "findUnique", { where: { id: 1 } });
+    const params = createParams("User", "findUniqueOrThrow", { where: { id: 1 } });
     const next = jest.fn(() => Promise.resolve({ id: 1, deleted: true }));
 
     expect(await middleware(params, next)).toEqual({ id: 1, deleted: true });
   });
 
-  it("changes findUnique into findFirst and excludes deleted records", async () => {
+  it("changes findUniqueOrThrow into findFirst and excludes deleted records", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },
     });
 
-    const params = createParams("User", "findUnique", { where: { id: 1 } });
+    const params = createParams("User", "findUniqueOrThrow", { where: { id: 1 } });
     const next = jest.fn(() => Promise.resolve({}));
 
     await middleware(params, next);
@@ -46,61 +46,13 @@ describe("findUnique", () => {
     });
   });
 
-  it("throws when trying to pass a findUnique where with a compound unique index field", async () => {
-    const middleware = createSoftDeleteMiddleware({
-      models: { User: true },
-    });
-
-    const params = createParams("User", "findUnique", {
-      where: {
-        name_email: {
-          name: "test",
-          email: "test@test.com",
-        },
-      },
-    });
-
-    const next = () => Promise.resolve({});
-
-    await expect(middleware(params, next)).rejects.toThrowError(
-      `prisma-soft-delete-middleware: query of model "User" through compound unique index field "name_email" found. Queries of soft deleted models through a unique index are not supported. Set "allowCompoundUniqueIndexWhere" to true to override this behaviour.`
-    );
-  });
-
-  it('does not modify findUnique when compound unique index field used and "allowCompoundUniqueIndexWhere" is set to true', async () => {
-    const middleware = createSoftDeleteMiddleware({
-      models: {
-        User: {
-          field: "deleted",
-          createValue: Boolean,
-          allowCompoundUniqueIndexWhere: true,
-        },
-      },
-    });
-
-    const params = createParams("User", "findUnique", {
-      where: {
-        name_email: {
-          name: "test",
-          email: "test@test.com",
-        },
-      },
-    });
-    const next = jest.fn(() => Promise.resolve({}));
-
-    await middleware(params, next);
-
-    // params have not been modified
-    expect(next).toHaveBeenCalledWith(params);
-  });
-
-  it("does not modify findUnique to be a findFirst when no args passed", async () => {
+  it("does not modify findUniqueOrThrow to be a findFirst when no args passed", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },
     });
 
     // @ts-expect-error testing if user doesn't pass args accidentally
-    const params = createParams("User", "findUnique", undefined);
+    const params = createParams("User", "findUniqueOrThrow", undefined);
     const next = jest.fn(() => Promise.resolve({}));
 
     await middleware(params, next);
@@ -109,32 +61,32 @@ describe("findUnique", () => {
     expect(next).toHaveBeenCalledWith(params);
   });
 
-  it("does not modify findUnique to be a findFirst when invalid where passed", async () => {
+  it("does not modify findUniqueOrThrow to be a findFirst when invalid where passed", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },
     });
 
     // @ts-expect-error testing if user doesn't pass where accidentally
-    let params = createParams("User", "findUnique", {});
+    let params = createParams("User", "findUniqueOrThrow", {});
     let next = jest.fn(() => Promise.resolve({}));
     await middleware(params, next);
     expect(next).toHaveBeenCalledWith(params);
 
     // expect empty where not to modify params
     // @ts-expect-error testing if user passes where without unique field
-    params = createParams("User", "findUnique", { where: {} });
+    params = createParams("User", "findUniqueOrThrow", { where: {} });
     next = jest.fn(() => Promise.resolve({}));
     await middleware(params, next);
     expect(next).toHaveBeenCalledWith(params);
 
     // expect where with undefined id field not to modify params
-    params = createParams("User", "findUnique", { where: { id: undefined } });
+    params = createParams("User", "findUniqueOrThrow", { where: { id: undefined } });
     next = jest.fn(() => Promise.resolve({}));
     await middleware(params, next);
     expect(next).toHaveBeenCalledWith(params);
 
     // expect where with undefined unique field not to modify params
-    params = createParams("User", "findUnique", {
+    params = createParams("User", "findUniqueOrThrow", {
       where: { email: undefined },
     });
     next = jest.fn(() => Promise.resolve({}));
@@ -142,7 +94,7 @@ describe("findUnique", () => {
     expect(next).toHaveBeenCalledWith(params);
 
     // expect where with undefined unique index field not to modify params
-    params = createParams("User", "findUnique", {
+    params = createParams("User", "findUniqueOrThrow", {
       where: { name_email: undefined },
     });
     next = jest.fn(() => Promise.resolve({}));
@@ -150,7 +102,7 @@ describe("findUnique", () => {
     expect(next).toHaveBeenCalledWith(params);
 
     // expect where with defined non-unique field
-    params = createParams("User", "findUnique", {
+    params = createParams("User", "findUniqueOrThrow", {
       // @ts-expect-error intentionally incorrect where
       where: { name: "test" },
     });
@@ -159,7 +111,7 @@ describe("findUnique", () => {
     expect(next).toHaveBeenCalledWith(params);
 
     // expect where with defined non-unique field and undefined id field not to modify params
-    params = createParams("User", "findUnique", {
+    params = createParams("User", "findUniqueOrThrow", {
       where: { id: undefined, name: "test" },
     });
     next = jest.fn(() => Promise.resolve({}));

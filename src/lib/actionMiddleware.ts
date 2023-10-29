@@ -11,6 +11,27 @@ import {
   shouldFilterDeletedFromReadResult,
 } from "./utils/resultFiltering";
 
+const uniqueFieldsByModel: Record<string, string[]> = {};
+const uniqueIndexFieldsByModel: Record<string, string[]> = {};
+
+Prisma.dmmf.datamodel.models.forEach((model) => {
+  // add unique fields derived from indexes
+  const uniqueIndexFields: string[] = [];
+  model.uniqueFields.forEach((field) => {
+    uniqueIndexFields.push(field.join("_"));
+  });
+  uniqueIndexFieldsByModel[model.name] = uniqueIndexFields;
+
+  // add id field and unique fields from @unique decorator
+  const uniqueFields: string[] = [];
+  model.fields.forEach((field) => {
+    if (field.isId || field.isUnique) {
+      uniqueFields.push(field.name);
+    }
+  });
+  uniqueFieldsByModel[model.name] = uniqueFields;
+});
+
 /* Delete middleware */
 
 function createDeleteParams(
@@ -165,45 +186,64 @@ export function createUpsertMiddleware(_: ModelConfig): NestedMiddleware {
   };
 }
 
-/* FindUnique middleware */
+/* FindUnique middleware helpers */
 
-function createFindUniqueParams(
+function validateFindUniqueParams(
   params: NestedParams,
-  config: ModelConfig,
-  uniqueFields: string[],
-  uniqueIndexFields: string[]
-): NestedParams {
-  // pass through invalid args so Prisma throws an error
-  // findUnique must have a where object
-  // where object must have at least one defined unique field
-  if (
-    !params.args?.where ||
-    typeof params.args.where !== "object" ||
-    !Object.entries(params.args.where).some(
-      ([key, val]) =>
-        (uniqueFields.includes(key) || uniqueIndexFields.includes(key)) &&
-        typeof val !== "undefined"
-    )
-  ) {
-    return params;
-  }
-
-  const uniqueIndexField = Object.keys(params.args.where).find((key) =>
+  config: ModelConfig
+): void {
+  const uniqueIndexFields = uniqueIndexFieldsByModel[params.model || ""] || [];
+  const uniqueIndexField = Object.keys(params.args?.where || {}).find((key) =>
     uniqueIndexFields.includes(key)
   );
 
   // when unique index field is found it is not possible to use findFirst.
   // Instead warn the user that soft-deleted models will not be excluded from
   // this query unless warnForUniqueIndexes is false.
-  if (uniqueIndexField) {
-    if (!config.allowCompoundUniqueIndexWhere) {
-      throw new Error(
-        `prisma-soft-delete-middleware: query of model "${params.model}" through compound unique index field "${uniqueIndexField}" found. Queries of soft deleted models through a unique index are not supported. Set "allowCompoundUniqueIndexWhere" to true to override this behaviour.`
-      );
-    }
+  if (uniqueIndexField && !config.allowCompoundUniqueIndexWhere) {
+    throw new Error(
+      `prisma-soft-delete-middleware: query of model "${params.model}" through compound unique index field "${uniqueIndexField}" found. Queries of soft deleted models through a unique index are not supported. Set "allowCompoundUniqueIndexWhere" to true to override this behaviour.`
+    );
+  }
+}
 
+function shouldPassFindUniqueParamsThrough(
+  params: NestedParams,
+  config: ModelConfig
+): boolean {
+  const uniqueFields = uniqueFieldsByModel[params.model || ""] || [];
+  const uniqueIndexFields = uniqueIndexFieldsByModel[params.model || ""] || [];
+  const uniqueIndexField = Object.keys(params.args?.where || {}).find((key) =>
+    uniqueIndexFields.includes(key)
+  );
+
+  // pass through invalid args so Prisma throws an error
+  return (
+    // findUnique must have a where object
+    !params.args?.where ||
+    typeof params.args.where !== "object" ||
+    // where object must have at least one defined unique field
+    !Object.entries(params.args.where).some(
+      ([key, val]) =>
+        (uniqueFields.includes(key) || uniqueIndexFields.includes(key)) &&
+        typeof val !== "undefined"
+    ) ||
+    // pass through if where object has a unique index field and allowCompoundUniqueIndexWhere is true
+    !!(uniqueIndexField && config.allowCompoundUniqueIndexWhere)
+  );
+}
+
+/* FindUnique middleware */
+
+function createFindUniqueParams(
+  params: NestedParams,
+  config: ModelConfig
+): NestedParams {
+  if (shouldPassFindUniqueParamsThrough(params, config)) {
     return params;
   }
+
+  validateFindUniqueParams(params, config);
 
   return {
     ...params,
@@ -221,36 +261,41 @@ function createFindUniqueParams(
 export function createFindUniqueMiddleware(
   config: ModelConfig
 ): NestedMiddleware {
-  const uniqueFieldsByModel: Record<string, string[]> = {};
-  const uniqueIndexFieldsByModel: Record<string, string[]> = {};
-
-  Prisma.dmmf.datamodel.models.forEach((model) => {
-    // add unique fields derived from indexes
-    const uniqueIndexFields: string[] = [];
-    model.uniqueFields.forEach((field) => {
-      uniqueIndexFields.push(field.join("_"));
-    });
-    uniqueIndexFieldsByModel[model.name] = uniqueIndexFields;
-
-    // add id field and unique fields from @unique decorator
-    const uniqueFields: string[] = [];
-    model.fields.forEach((field) => {
-      if (field.isId || field.isUnique) {
-        uniqueFields.push(field.name);
-      }
-    });
-    uniqueFieldsByModel[model.name] = uniqueFields;
-  });
-
   return function findUniqueMiddleware(params, next) {
-    return next(
-      createFindUniqueParams(
-        params,
-        config,
-        uniqueFieldsByModel[params.model || ""] || [],
-        uniqueIndexFieldsByModel[params.model || ""] || []
-      )
-    );
+    return next(createFindUniqueParams(params, config));
+  };
+}
+
+/* FindUniqueOrThrow middleware */
+
+function createFindUniqueOrThrowParams(
+  params: NestedParams,
+  config: ModelConfig
+): NestedParams {
+  if (shouldPassFindUniqueParamsThrough(params, config)) {
+    return params;
+  }
+
+  validateFindUniqueParams(params, config);
+
+  return {
+    ...params,
+    action: "findFirstOrThrow",
+    args: {
+      ...params.args,
+      where: {
+        ...params.args?.where,
+        [config.field]: config.createValue(false),
+      },
+    },
+  };
+}
+
+export function createFindUniqueOrThrowMiddleware(
+  config: ModelConfig
+): NestedMiddleware {
+  return function findUniqueMiddleware(params, next) {
+    return next(createFindUniqueOrThrowParams(params, config));
   };
 }
 
@@ -283,6 +328,35 @@ export function createFindFirstMiddleware(
   };
 }
 
+/* FindFirst middleware */
+
+function createFindFirstOrThrowParams(
+  params: NestedParams,
+  config: ModelConfig
+): NestedParams {
+  return {
+    ...params,
+    action: "findFirstOrThrow",
+    args: {
+      ...params.args,
+      where: {
+        ...params.args?.where,
+        // allow overriding the deleted field in where
+        [config.field]:
+          params.args?.where?.[config.field] || config.createValue(false),
+      },
+    },
+  };
+}
+
+export function createFindFirstOrThrowMiddleware(
+  config: ModelConfig
+): NestedMiddleware {
+  return function findFirstOrThrow(params, next) {
+    return next(createFindFirstOrThrowParams(params, config));
+  };
+}
+
 /* FindMany middleware */
 
 function createFindManyParams(
@@ -312,7 +386,6 @@ export function createFindManyMiddleware(
   };
 }
 
-
 /*GroupBy middleware */
 function createGroupByParams(
   params: NestedParams,
@@ -333,15 +406,11 @@ function createGroupByParams(
   };
 }
 
-export function createGroupByMiddleware(
-  config: ModelConfig
-): NestedMiddleware {
+export function createGroupByMiddleware(config: ModelConfig): NestedMiddleware {
   return function groupByMiddleware(params, next) {
     return next(createGroupByParams(params, config));
   };
 }
-
-
 
 /* Count middleware */
 

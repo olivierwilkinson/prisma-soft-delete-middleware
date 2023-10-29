@@ -329,6 +329,23 @@ describe("queries", () => {
     });
   });
 
+  describe("findFirstOrThrow", () => {
+    it("findFirstOrThrow throws for soft deleted records", async () => {
+      const foundUser = await testClient.user.findFirstOrThrow({
+        where: { email: firstUser.email },
+      });
+
+      expect(foundUser).not.toBeNull();
+      expect(foundUser!.id).toEqual(firstUser.id);
+
+      await expect(() =>
+        testClient.user.findFirstOrThrow({
+          where: { email: deletedUser.email },
+        })
+      ).rejects.toThrowError("No User found");
+    });
+  });
+
   describe("findUnique", () => {
     it("findUnique excludes soft deleted records", async () => {
       const foundUser = await testClient.user.findUnique({
@@ -391,7 +408,6 @@ describe("queries", () => {
       // throws useful error when where has undefined unique field and defined non-unique field
       await expect(() =>
         testClient.user.findUnique({
-          // @ts-expect-error intentionally incorrect args
           where: { id: undefined, name: firstUser.name },
         })
       ).rejects.toThrowError(
@@ -404,6 +420,94 @@ describe("queries", () => {
       "findUnique excludes soft-deleted records when using compound unique index fields",
       async () => {
         const notFoundUser = await testClient.user.findUnique({
+          where: {
+            name_email: {
+              name: deletedUser.name,
+              email: deletedUser.email,
+            },
+          },
+        });
+        expect(notFoundUser).toBeNull();
+      }
+    );
+  });
+
+  describe("findUniqueOrThrow", () => {
+    it("findUniqueOrThrow throws for soft deleted records", async () => {
+      const foundUser = await testClient.user.findUniqueOrThrow({
+        where: { id: firstUser.id },
+      });
+      expect(foundUser).not.toBeNull();
+      expect(foundUser!.id).toEqual(firstUser.id);
+
+      await expect(() =>
+        testClient.user.findUniqueOrThrow({
+          where: { id: deletedUser.id },
+        })
+      ).rejects.toThrowError(
+        "No User found"
+      );
+    });
+
+    it("throws a useful error when invalid where is passed", async () => {
+      // throws useful error when no where is passed
+      await expect(() =>
+        testClient.user.findUniqueOrThrow()
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUniqueOrThrow()` invocation"
+      );
+
+      // throws useful error when empty where is passed
+      await expect(() =>
+        // @ts-expect-error intentionally incorrect args
+        testClient.user.findUniqueOrThrow({})
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUniqueOrThrow()` invocation"
+      );
+
+      // throws useful error when where is passed undefined unique fields
+      await expect(() =>
+        testClient.user.findUniqueOrThrow({
+          where: { id: undefined },
+        })
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUniqueOrThrow()` invocation"
+      );
+
+      // throws useful error when where has defined non-unique fields
+      await expect(() =>
+        testClient.user.findUniqueOrThrow({
+          // @ts-expect-error intentionally incorrect args
+          where: { name: firstUser.name },
+        })
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUniqueOrThrow()` invocation"
+      );
+
+      // throws useful error when where has undefined compound unique index field
+      await expect(() =>
+        testClient.user.findUniqueOrThrow({
+          where: { name_email: undefined },
+        })
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUniqueOrThrow()` invocation"
+      );
+
+      // throws useful error when where has undefined unique field and defined non-unique field
+      await expect(() =>
+        testClient.user.findUniqueOrThrow({
+          where: { id: undefined, name: firstUser.name },
+        })
+      ).rejects.toThrowError(
+        "Invalid `testClient.user.findUniqueOrThrow()` invocation"
+      );
+    });
+
+    // TODO:- enable this test when extendedWhereUnique is supported
+    it.failing(
+      "findUniqueOrThrow excludes soft-deleted records when using compound unique index fields",
+      async () => {
+        const notFoundUser = await testClient.user.findUniqueOrThrow({
           where: {
             name_email: {
               name: deletedUser.name,
