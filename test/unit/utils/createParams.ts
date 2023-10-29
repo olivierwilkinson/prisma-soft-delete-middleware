@@ -1,13 +1,13 @@
 import { Prisma } from "@prisma/client";
 
 type DelegateByModel<Model extends Prisma.ModelName> = Model extends "User"
-  ? Prisma.UserDelegate<undefined>
+  ? Prisma.UserDelegate<any>
   : Model extends "Post"
-  ? Prisma.PostDelegate<undefined>
+  ? Prisma.PostDelegate<any>
   : Model extends "Profile"
-  ? Prisma.ProfileDelegate<undefined>
+  ? Prisma.ProfileDelegate<any>
   : Model extends "Comment"
-  ? Prisma.CommentDelegate<undefined>
+  ? Prisma.CommentDelegate<any>
   : never;
 
 type SelectByModel<Model extends Prisma.ModelName> = Model extends "User"
@@ -53,10 +53,14 @@ type ArgsByAction<
   ? Parameters<DelegateByModel<Model>["updateMany"]>[0]
   : Action extends "findUnique"
   ? Parameters<DelegateByModel<Model>["findUnique"]>[0]
+  : Action extends "findUniqueOrThrow"
+  ? Parameters<DelegateByModel<Model>["findUnique"]>[0]
   : Action extends "groupBy"
   ? Parameters<DelegateByModel<Model>["groupBy"]>[0]
   : Action extends "findFirst"
   ? Parameters<DelegateByModel<Model>["findFirst"]>[0]
+  : Action extends "findFirstOrThrow"
+  ? Parameters<DelegateByModel<Model>["findFirstOrThrow"]>[0]
   : Action extends "findMany"
   ? Parameters<DelegateByModel<Model>["findMany"]>[0]
   : Action extends "count"
