@@ -26,7 +26,7 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Disclaimer](#disclaimer)
+- [Prisma Middleware Deprecation](#prisma-middleware-deprecation)
 - [Installation](#installation)
 - [Usage](#usage)
   - [Middleware Setup](#middleware-setup)
@@ -53,10 +53,13 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## Disclaimer
+## Prisma Middleware Deprecation
 
-This library is still in early development and is not yet ready for production use. Please don't let that stop you from
-trying it out and raising issues!
+Since Prisma middleware is deprecated this library has been ported to an extension:
+[prisma-extension-soft-delete](https://github.com/olivierwilkinson/prisma-extension-soft-delete).
+
+While middleware is still supported this library will continue to be maintained, however it is recommended to use the
+extension instead.
 
 ## Installation
 
