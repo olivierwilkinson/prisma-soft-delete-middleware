@@ -10,7 +10,7 @@ export function shouldFilterDeletedFromReadResult(
   return (
     !params.args.where ||
     typeof params.args.where[config.field] === "undefined" ||
-    !params.args.where[config.field]
+    params.args.where[config.field] === config.createValue(false)
   );
 }
 
