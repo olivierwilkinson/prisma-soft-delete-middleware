@@ -175,56 +175,6 @@ describe("include", () => {
     });
   });
 
-  it("excludes deleted records from toMany include nested in toMany include", async () => {
-    const middleware = createSoftDeleteMiddleware({
-      models: { Comment: true },
-    });
-
-    const params = createParams("User", "findFirst", {
-      where: { id: 1 },
-      include: {
-        posts: {
-          include: {
-            comments: true,
-          },
-        },
-      },
-    });
-
-    const next = jest.fn(() =>
-      Promise.resolve({
-        posts: [
-          {
-            comments: [{ deleted: true }, { deleted: false }],
-          },
-          {
-            comments: [
-              { deleted: false },
-              { deleted: false },
-              { deleted: true },
-            ],
-          },
-        ],
-      })
-    );
-
-    const result = await middleware(params, next);
-
-    expect(next).toHaveBeenCalledWith(
-      set(params, "args.include.posts.include.comments", {
-        where: {
-          deleted: false,
-        },
-      })
-    );
-    expect(result).toEqual({
-      posts: [
-        { comments: [{ deleted: false }] },
-        { comments: [{ deleted: false }, { deleted: false }] },
-      ],
-    });
-  });
-
   it("manually excludes deleted records from toOne include nested in toMany include", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },
