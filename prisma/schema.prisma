@@ -52,8 +52,9 @@ model Comment {
 }
 
 model Profile {
-  id      Int     @id @default(autoincrement())
-  bio     String?
-  deleted Boolean @default(false)
-  users   User[]
+  id        Int      @id @default(autoincrement())
+  bio       String?
+  deleted   Boolean  @default(false)
+  deletedAt DateTime @default(dbgenerated("to_timestamp(0)"))
+  users     User[]
 }

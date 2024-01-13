@@ -11,7 +11,16 @@ describe("nested reads", () => {
   beforeAll(async () => {
     testClient = new PrismaClient();
     testClient.$use(
-      createSoftDeleteMiddleware({ models: { Comment: true, Profile: true } })
+      createSoftDeleteMiddleware({
+        models: {
+          Comment: true,
+          // use truthy value for non-deleted to test that they are still filtered
+          Profile: {
+            field: "deletedAt",
+            createValue: (deleted) => (deleted ? new Date() : new Date(0)),
+          },
+        },
+      })
     );
 
     user = await client.user.create({
@@ -66,7 +75,7 @@ describe("nested reads", () => {
     // restore soft deleted profile
     await client.profile.updateMany({
       where: {},
-      data: { deleted: false },
+      data: { deletedAt: new Date(0) },
     });
   });
   afterAll(async () => {
@@ -107,7 +116,7 @@ describe("nested reads", () => {
       await client.profile.updateMany({
         where: {},
         data: {
-          deleted: true,
+          deletedAt: new Date(),
         },
       });
 
@@ -214,7 +223,7 @@ describe("nested reads", () => {
       await client.profile.updateMany({
         where: {},
         data: {
-          deleted: true,
+          deletedAt: new Date(),
         },
       });
 
@@ -402,7 +411,7 @@ describe("nested reads", () => {
       await client.profile.update({
         where: { id: profile!.id },
         data: {
-          deleted: true,
+          deletedAt: new Date(),
         },
       });
 
