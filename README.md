@@ -122,8 +122,13 @@ client.$use(
 ```
 
 The `field` property is the name of the field to use for soft delete, and the `createValue` property is a function that
-takes a deleted argument and returns the value for whether the record is soft deleted or not. The `createValue` method
-must return a falsy value if the record is not deleted and a truthy value if it is deleted.
+takes a deleted argument and returns the value for whether the record is soft deleted or not.
+
+The `createValue` method must return a deterministic value if the record is not deleted. This is because the middleware
+uses the value returned by `createValue` to modify the `where` object in the query, or to manually filter the results
+when including or selecting a toOne relationship. If the value for the field can have multiple values when the record is
+not deleted then this filtering will fail. Examples for good values to use when the `deleted` arg in `createValue` is
+false are `false`, `null`, `0` or `Date(0)`.
 
 It is possible to setup soft delete for multiple models at once by passing a config for each model in the `models`
 object:
@@ -226,7 +231,6 @@ client.$use(
 For more information for why updating through toOne relationship is disabled by default see the
 [Excluding Soft Deleted Records in a `findUnique` Operation](#excluding-soft-deleted-records-in-a-findunique-operation) section.
 
-
 To allow to one updates or compound unique index fields globally you can use the `defaultConfig` to do so:
 
 ```typescript
@@ -267,6 +271,17 @@ the record is deleted you would need to add the following to your Prisma schema:
 ```prisma
 model Comment {
   deletedAt DateTime?
+  [other fields]
+}
+```
+
+If the Comment model was configured to use a `deletedAt` field where the value is `Date(0)` by default and a `Date()`
+when the record is deleted you would need to add the following to your Prisma schema:
+
+```prisma
+model Comment {
+  deletedAt DateTime @default(dbgenerated("to_timestamp(0)"))
+  // Note that the example above is for PostgreSQL, you will need to use the appropriate default function for your db.
   [other fields]
 }
 ```
