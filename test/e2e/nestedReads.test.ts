@@ -230,7 +230,7 @@ describe("nested reads", () => {
       expect(softDeletedProfile).toBeNull();
     });
 
-    it("excludes deleted when deeply including relations", async () => {
+    it("excludes deleted when deeply selecting relations", async () => {
       const {
         comments: nonDeletedComments,
       } = await testClient.user.findUniqueOrThrow({

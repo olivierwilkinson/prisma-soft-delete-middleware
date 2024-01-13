@@ -566,11 +566,6 @@ function createSelectParams(
   params: NestedParams,
   config: ModelConfig
 ): NestedParams {
-  // selects in includes are handled by createIncludeParams
-  if (params.scope?.parentParams.action === "include") {
-    return params;
-  }
-
   // selects of toOne relation cannot filter deleted records using params
   if (params.scope?.relations?.to.isList === false) {
     if (params.args?.select && !params.args.select[config.field]) {
