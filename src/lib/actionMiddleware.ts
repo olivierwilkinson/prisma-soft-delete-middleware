@@ -63,7 +63,9 @@ function createDeleteParams(
     ...params,
     action: "update",
     args: {
-      where: params.args?.where || params.args,
+      where: params.args.where
+        ? { ...params.args.where, ...{ [field]: null } }
+        : params.args,
       data: {
         [field]: createValue(true),
       },
