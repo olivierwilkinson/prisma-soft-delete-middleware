@@ -53,9 +53,21 @@ function createDeleteParams(
       ...params,
       action: "update",
       args: {
-        ...params.args,
         __passUpdateThrough: true,
         [field]: createValue(true),
+      },
+    };
+  }
+
+  if (!!params.scope) {
+    return {
+      ...params,
+      action: "update",
+      args: {
+        where: params.args,
+        data: {
+          [field]: createValue(true),
+        },
       },
     };
   }
@@ -65,7 +77,6 @@ function createDeleteParams(
     action: "update",
     args: {
       ...params.args,
-      where: params.args?.where || params.args,
       data: {
         [field]: createValue(true),
       },

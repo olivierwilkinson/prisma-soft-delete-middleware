@@ -30,7 +30,7 @@ type IncludeByModel<Model extends Prisma.ModelName> = Model extends "User"
   ? Prisma.CommentInclude
   : never;
 
-type ActionByModel<Model extends Prisma.ModelName> =
+export type ActionByModel<Model extends Prisma.ModelName> =
   | keyof DelegateByModel<Model>
   | "connectOrCreate"
   | "select"
