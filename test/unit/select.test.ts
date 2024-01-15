@@ -2,7 +2,7 @@ import { set } from "lodash";
 import faker from "faker";
 
 import { createSoftDeleteMiddleware } from "../../src";
-import { createParams } from "./utils/createParams";
+import { ActionByModel, createParams } from "./utils/createParams";
 
 describe("select", () => {
   it("does not change select params if model is not in the list", async () => {
@@ -20,6 +20,44 @@ describe("select", () => {
     // params have not been modified
     expect(next).toHaveBeenCalledWith(params);
   });
+
+  it.each([
+    "delete",
+    "update",
+    "upsert",
+    "findFirst",
+    "findFirstOrThrow",
+    "findUnique",
+    "findUniqueOrThrow",
+    "findMany",
+  ] as Array<ActionByModel<"User">>)(
+    "can select records for configured models in %s",
+    async (action) => {
+      const middleware = createSoftDeleteMiddleware({
+        models: { User: true },
+      });
+
+      const params = createParams("User", action, {
+        where: { id: 1 },
+        select: {
+          comments: true,
+        },
+      });
+
+      const next = jest.fn(() =>
+        Promise.resolve({
+          comments: [{ deleted: true }, { deleted: false }],
+        })
+      );
+
+      await middleware(params, next);
+
+      // @ts-expect-error - ts doesn't know there has been a call
+      expect(next.mock.calls[0][0]?.args?.select).toEqual({
+        comments: true,
+      });
+    }
+  );
 
   it("excludes deleted records from selects", async () => {
     const middleware = createSoftDeleteMiddleware({

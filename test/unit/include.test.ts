@@ -2,7 +2,7 @@ import { set } from "lodash";
 import faker from "faker";
 
 import { createSoftDeleteMiddleware } from "../../src";
-import { createParams } from "./utils/createParams";
+import { createParams, ActionByModel } from "./utils/createParams";
 
 describe("include", () => {
   it("does not change include params if model is not in the list", async () => {
@@ -20,6 +20,44 @@ describe("include", () => {
     // params have not been modified
     expect(next).toHaveBeenCalledWith(params);
   });
+
+  it.each([
+    "delete",
+    "update",
+    "upsert",
+    "findFirst",
+    "findFirstOrThrow",
+    "findUnique",
+    "findUniqueOrThrow",
+    "findMany",
+  ] as Array<ActionByModel<"User">>)(
+    "can include records for configured models in %s",
+    async (action) => {
+      const middleware = createSoftDeleteMiddleware({
+        models: { User: true },
+      });
+
+      const params = createParams("User", action, {
+        where: { id: 1 },
+        include: {
+          comments: true,
+        },
+      });
+
+      const next = jest.fn(() =>
+        Promise.resolve({
+          comments: [{ deleted: true }, { deleted: false }],
+        })
+      );
+
+      await middleware(params, next);
+
+      // @ts-expect-error - ts doesn't know there has been a call
+      expect(next.mock.calls[0][0]?.args?.include).toEqual({
+        comments: true,
+      });
+    }
+  );
 
   it("uses params to exclude deleted records from toMany includes", async () => {
     const middleware = createSoftDeleteMiddleware({
@@ -138,7 +176,7 @@ describe("include", () => {
     expect(next).toHaveBeenCalledWith(params);
     expect(result).toEqual({ author: null });
   });
-  
+
   it("does not manually exclude non-deleted records from toOne include with nested includes", async () => {
     const middleware = createSoftDeleteMiddleware({
       models: { User: true },
@@ -212,7 +250,6 @@ describe("include", () => {
       ],
     });
   });
-
 
   it("allows explicitly including deleted records using include", async () => {
     const middleware = createSoftDeleteMiddleware({

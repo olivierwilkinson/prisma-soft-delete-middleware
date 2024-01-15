@@ -59,11 +59,24 @@ function createDeleteParams(
     };
   }
 
+  if (!!params.scope) {
+    return {
+      ...params,
+      action: "update",
+      args: {
+        where: params.args,
+        data: {
+          [field]: createValue(true),
+        },
+      },
+    };
+  }
+
   return {
     ...params,
     action: "update",
     args: {
-      where: params.args?.where || params.args,
+      ...params.args,
       data: {
         [field]: createValue(true),
       },
